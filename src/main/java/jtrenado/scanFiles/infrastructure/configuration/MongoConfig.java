@@ -1,5 +1,6 @@
-package com.example.demo.infrastructure;
+package jtrenado.scanFiles.infrastructure.configuration;
 
+import jtrenado.scanFiles.infrastructure.entities.File;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.Sort;
@@ -30,13 +31,7 @@ public class MongoConfig {
 
     private void ensureIndexes() {
 
-        mongoTemplate.indexOps(File.class).ensureIndex(
-                new Index()
-                        .named("path")
-                        .on("path", Sort.Direction.ASC)
-                        .unique()
-                        .sparse());
+        mongoTemplate.indexOps(File.class).ensureIndex(new Index().named("path").on("path", Sort.Direction.ASC).unique().sparse());
     }
-
 
 }

@@ -1,6 +1,7 @@
-package com.example.demo.application.subscribers;
+package jtrenado.scanFiles.application.subscribers;
 
-import com.example.demo.application.Task;
+import jtrenado.scanFiles.application.dto.Task;
+import jtrenado.scanFiles.application.services.StatsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -26,8 +27,10 @@ public class DistributeProcessor extends CustomSubscriber {
     @Autowired
     private Map<Path, Task> tasks;
 
-    private static final int MAX = 1;
+    @Autowired
+    private StatsService statsService;
 
+    private static final int MAX = 3;
 
     int onNextAmount;
 
@@ -36,22 +39,21 @@ public class DistributeProcessor extends CustomSubscriber {
         distributePublisher.subscribe(this);
     }
 
-
     @Override
     public void onNext(Task task) {
 
         if (task.getHash() == null) {
             processHashPublisher.submit(task);
-        } else if (task.getFootprint() == null) {
-            processFootprintPublisher.submit(task);
+            //        } else if (task.getFootprint() == null) {
+            //            processFootprintPublisher.submit(task);
         } else {
             tasks.remove(task.getPath());
-            log.info("Task has been completed: " + task);
+            statsService.incCompletedTasks(1);
+            log.debug("Task has been completed: " + task);
         }
 
         requestNext();
     }
-
 
     private void requestNext() {
         onNextAmount++;
@@ -59,6 +61,5 @@ public class DistributeProcessor extends CustomSubscriber {
             subscription.request(MAX);
         }
     }
-
 
 }

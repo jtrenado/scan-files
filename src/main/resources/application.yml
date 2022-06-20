@@ -1,0 +1,51 @@
+environment: local
+
+spring:
+  data:
+    mongodb:
+      uri: ${MONGO_URI}
+
+
+app:
+  task-publisher:
+    initial-max: 100
+    increment: 20
+    fixed-delay: 10000
+    initial-delay: 10000
+  dupe-cleaner:
+    fixed-delay: 600000
+    initial-delay: 600
+  file-remover:
+    fixed-delay: 600000
+    initial-delay: 600000
+  paths: /home/juan/devel/d1,/home/juan/devel/d2,/home/juan/devel/image_fingerprint
+  mongodb:
+    collection:
+      file: files
+      hash: hashes
+  extensions:
+    video: mp4,wmv,3gp,mov,mpg,avi
+    image: jpg,jpeg,png
+  videos:
+    ignore: false
+    delete: false
+  images:
+    ignore: false
+    delete: false
+  others:
+    ignore: true
+    delete: false
+
+
+
+
+logging:
+  level:
+    root: ERROR
+    jtrenado.scanFiles: INFO
+    jtrenado.scanFiles.application: INFO
+    jtrenado.scanFiles.application.subscribers: INFO
+    jtrenado.scanFiles.application.services: INFO
+    jtrenado.scanFiles.application.services.FileFinder: DEBUG
+    jtrenado.scanFiles.infrastructure: INFO
+

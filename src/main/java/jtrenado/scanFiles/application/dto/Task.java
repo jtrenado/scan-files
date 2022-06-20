@@ -1,25 +1,18 @@
-package com.example.demo.application;
+package jtrenado.scanFiles.application.dto;
 
-import com.example.demo.application.subscribers.CustomSubscriber;
-import lombok.AccessLevel;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import jtrenado.scanFiles.application.subscribers.CustomSubscriber;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.file.Path;
 import java.util.ConcurrentModificationException;
 
 @Data
-@RequiredArgsConstructor
+@Builder
 @ToString(exclude = {"subscriber", "contents"})
 @EqualsAndHashCode(of = "path")
 @Slf4j
 public class Task {
-
 
     @NonNull
     private byte[] contents;
@@ -31,7 +24,7 @@ public class Task {
 
     private String hash;
 
-    private int size;
+    private Integer size;
 
     private String meta;
 
@@ -41,7 +34,7 @@ public class Task {
     public synchronized void lock(CustomSubscriber locker) {
         if (this.subscriber == null) {
             this.subscriber = locker;
-            log.info("Lock " + this.getPath() + ": " + locker.getClass());
+            log.debug("Lock " + this.getPath() + ": " + locker.getClass());
         } else {
             throw new ConcurrentModificationException(locker.getClass() + " is trying to get the task occupied by" + this.subscriber.getClass() + ": " + this);
         }
@@ -50,13 +43,13 @@ public class Task {
     public synchronized void free(CustomSubscriber locker) {
         if (this.subscriber == locker) {
             this.subscriber = null;
-            log.info("Free " + this.getPath() + ": " + locker.getClass());
+            log.debug("Free " + this.getPath() + ": " + locker.getClass());
         } else {
             throw new ConcurrentModificationException(locker.getClass() + " is trying to free the task occupied by" + this.subscriber.getClass() + ": " + this);
         }
     }
 
     public boolean isCompleted() {
-        return hash != null && footprint != null;
+        return hash != null && size != null;
     }
 }

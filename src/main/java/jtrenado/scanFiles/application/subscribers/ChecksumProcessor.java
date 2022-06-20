@@ -1,9 +1,10 @@
-package com.example.demo.application.subscribers;
+package jtrenado.scanFiles.application.subscribers;
 
-import com.example.demo.application.Task;
+import jtrenado.scanFiles.application.dto.Task;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.DigestUtils;
 
 import javax.annotation.PostConstruct;
 import java.util.concurrent.SubmissionPublisher;
@@ -15,18 +16,15 @@ public class ChecksumProcessor extends CustomSubscriber {
     @Autowired
     private SubmissionPublisher<Task> processHashPublisher;
 
-
     @Autowired
     private SubmissionPublisher<Task> saveTaskPublisher;
 
-    private final int MAX = 1;
-
+    private final int MAX = 3;
 
     @PostConstruct
     void init() {
         processHashPublisher.subscribe(this);
     }
-
 
     @Override
     public void onNext(Task task) {
@@ -53,19 +51,15 @@ public class ChecksumProcessor extends CustomSubscriber {
         }
     }
 
-
     private void process(Task task) {
 
-        log.info("Processing hash" + task);
+        log.debug("Processing hash {}", task.getPath());
 
-        try {
-            Thread.sleep(130);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        task.setHash("hash");
-        log.info("Completing hash" + task);
+        String hash = DigestUtils.md5DigestAsHex(task.getContents());
+        task.setHash(hash);
+        task.setSize(task.getContents().length);
 
+        log.debug("Completing hash {}: {}", task.getPath(), task.getHash());
 
     }
 }

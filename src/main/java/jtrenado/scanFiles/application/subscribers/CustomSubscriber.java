@@ -1,6 +1,6 @@
-package com.example.demo.application.subscribers;
+package jtrenado.scanFiles.application.subscribers;
 
-import com.example.demo.application.Task;
+import jtrenado.scanFiles.application.dto.Task;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.Flow;
@@ -10,7 +10,6 @@ public abstract class CustomSubscriber implements Flow.Subscriber<Task> {
 
     Flow.Subscription subscription;
     int onNextAmount;
-
 
     public void request() {
         subscription.request(1);
@@ -27,10 +26,9 @@ public abstract class CustomSubscriber implements Flow.Subscriber<Task> {
         throwable.printStackTrace();
     }
 
-
     @Override
     public void onComplete() {
-        log.info("MongoProcessor: done");
+        log.info("{}: done", this.getClass().getCanonicalName());
     }
 
 }

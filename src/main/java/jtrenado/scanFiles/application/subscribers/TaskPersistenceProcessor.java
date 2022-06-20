@@ -1,6 +1,7 @@
-package com.example.demo.application.subscribers;
+package jtrenado.scanFiles.application.subscribers;
 
-import com.example.demo.application.Task;
+import jtrenado.scanFiles.application.dto.Task;
+import jtrenado.scanFiles.application.services.FileService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -10,24 +11,23 @@ import java.util.concurrent.SubmissionPublisher;
 
 @Component
 @Slf4j
-public class MongoProcessor extends CustomSubscriber {
-
+public class TaskPersistenceProcessor extends CustomSubscriber {
 
     @Autowired
     private SubmissionPublisher<Task> distributePublisher;
 
-
     @Autowired
     private SubmissionPublisher<Task> saveTaskPublisher;
 
-    private final int MAX = 1;
+    @Autowired
+    private FileService fileService;
 
+    private final int MAX = 2;
 
     @PostConstruct
     void init() {
         saveTaskPublisher.subscribe(this);
     }
-
 
     @Override
     public void onNext(Task task) {
@@ -46,13 +46,8 @@ public class MongoProcessor extends CustomSubscriber {
     }
 
     private void process(Task task) {
-        log.info("Save " + task);
-        try {
-            Thread.sleep(30);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        log.debug("Save " + task);
+        fileService.save(task.getPath(), task.getHash(), task.getFootprint(), task.getSize());
     }
-
 
 }

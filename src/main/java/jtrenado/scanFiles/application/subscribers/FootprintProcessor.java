@@ -1,6 +1,6 @@
-package com.example.demo.application.subscribers;
+package jtrenado.scanFiles.application.subscribers;
 
-import com.example.demo.application.Task;
+import jtrenado.scanFiles.application.dto.Task;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -15,12 +15,10 @@ public class FootprintProcessor extends CustomSubscriber {
     @Autowired
     private SubmissionPublisher<Task> processFootprintPublisher;
 
-
     @Autowired
     private SubmissionPublisher<Task> saveTaskPublisher;
 
     private final int MAX = 1;
-
 
     @PostConstruct
     void init() {
@@ -53,7 +51,6 @@ public class FootprintProcessor extends CustomSubscriber {
         }
     }
 
-
     private void process(Task task) {
 
         log.info("Processing footprint" + task);
@@ -65,7 +62,6 @@ public class FootprintProcessor extends CustomSubscriber {
         }
         task.setFootprint("footprint");
         log.info("Completing footprint" + task);
-
 
     }
 }

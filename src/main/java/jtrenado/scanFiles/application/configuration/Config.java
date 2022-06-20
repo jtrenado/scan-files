@@ -1,7 +1,9 @@
-package com.example.demo.application;
+package jtrenado.scanFiles.application.configuration;
 
+import jtrenado.scanFiles.application.dto.Task;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 
 import java.nio.file.Path;
 import java.util.Map;
@@ -11,6 +13,10 @@ import java.util.concurrent.SubmissionPublisher;
 @Configuration
 public class Config {
 
+    @Bean
+    public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
+        return new PropertySourcesPlaceholderConfigurer();
+    }
 
     @Bean
     public Map<Path, Task> tasks() {
