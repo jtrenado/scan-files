@@ -1,4 +1,4 @@
-package jtrenado.scanFiles.application.services;
+package jtrenado.scanFiles.application.schedulers;
 
 import jtrenado.scanFiles.application.configuration.Properties;
 import jtrenado.scanFiles.infrastructure.entities.File;
@@ -6,7 +6,9 @@ import jtrenado.scanFiles.infrastructure.entities.FileType;
 import jtrenado.scanFiles.infrastructure.repositories.FileRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,7 +33,8 @@ public class FileFinder {
     private AtomicInteger numFiles;
     private AtomicInteger numNewFiles;
 
-    public synchronized void reloadFiles() {
+    @Scheduled(fixedDelayString = "${app.file-finder.fixed-delay}", initialDelayString = "${app.file-finder.initial-delay}")
+    public void reloadFiles() {
 
         log.info("Reload files in paths");
 
@@ -43,7 +46,7 @@ public class FileFinder {
         boolean allDirectories = p.stream().map(Files::isDirectory).allMatch(Boolean.TRUE::equals);
 
         if (allDirectories) {
-            p.parallelStream().forEach(this::reloadFiles);
+            Flux.fromIterable(p).doOnNext(this::reloadFiles).doOnComplete(() -> log.info("FileFinder completed")).subscribe();
             log.info("{} new files loaded from a total of {}", numNewFiles.get(), numFiles.get());
         } else {
             log.error("Not all paths are directories");
@@ -54,36 +57,44 @@ public class FileFinder {
     private void reloadFiles(Path path) {
 
         try {
-            Files.walk(path).parallel().filter(Files::isRegularFile).forEach(this::persist);
+
+            Flux<Path> files = Flux.fromStream(Files.walk(path).parallel()).log();
+
+
+            files.filter(Files::isRegularFile).doOnNext(f -> numFiles.incrementAndGet()).filter(f -> !ignore(f)).map(Path::toAbsolutePath).filter(p -> {
+                boolean exists = fileRepository.existsByPath(p.toString()).toFuture().join();
+                if (exists) {
+                    log.debug("Already in DB {}", p.toString());
+                }
+                return !exists;
+            }).map(this::create).flatMap(fileRepository::save).doOnNext(f -> {
+                numNewFiles.incrementAndGet();
+                log.debug("Saving {}", f);
+            }).subscribe();
+
         } catch (IOException e) {
             log.error(path.toString(), e);
         }
     }
 
-    private void persist(Path path) {
-
-        Path absolutePath = path.toAbsolutePath();
-        Optional<File> file = fileRepository.findByPath(absolutePath.toString());
-        if (file.isEmpty()) {
-            String extension = getExtensionByStringHandling(absolutePath.toString()).orElse("");
-            FileType fileType = getFileType(extension);
-            if (!ignore(fileType)) {
-                File f = File.builder().path(absolutePath.toString()).type(fileType).build();
-                fileRepository.save(f);
-                numNewFiles.incrementAndGet();
-                log.debug("Saving " + absolutePath.toString());
-            } else {
-                log.debug("Ignoring " + absolutePath.toString());
-            }
-        } else {
-            log.debug("Already in DB " + absolutePath.toString());
-        }
-        numFiles.incrementAndGet();
-
+    private File create(Path path) {
+        FileType fileType = getFileType(path);
+        return File.builder().path(path.toString()).type(fileType).build();
     }
 
-    private boolean ignore(FileType fileType) {
-        return properties.isIgnoreImages() && fileType.equals(FileType.IMAGE) || properties.isIgnoreVideos() && fileType.equals(FileType.VIDEO) || properties.isIgnoreOthers() && fileType.equals(FileType.UNKNOWN);
+    private boolean ignore(Path path) {
+        FileType fileType = getFileType(path);
+        boolean ignore = properties.isIgnoreImages() && fileType.equals(FileType.IMAGE) || properties.isIgnoreVideos() && fileType.equals(FileType.VIDEO) || properties.isIgnoreOthers() && fileType.equals(FileType.UNKNOWN);
+        if (ignore) {
+            log.debug("Ignoring " + path.toString());
+        }
+        return ignore;
+    }
+
+    private FileType getFileType(Path path) {
+        Path absolutePath = path.toAbsolutePath();
+        String extension = getExtensionByStringHandling(absolutePath.toString()).orElse("");
+        return getFileType(extension);
     }
 
     private FileType getFileType(String extension) {

@@ -4,7 +4,7 @@ import jtrenado.scanFiles.infrastructure.entities.File;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
 
 import javax.annotation.PostConstruct;
@@ -13,7 +13,7 @@ import javax.annotation.PostConstruct;
 public class MongoConfig {
 
     @Autowired
-    private MongoTemplate mongoTemplate;
+    private ReactiveMongoTemplate mongoTemplate;
 
     @PostConstruct
     public final void ensureIndex() {
@@ -21,7 +21,7 @@ public class MongoConfig {
     }
 
     private void createIndexes() {
-        final boolean exitsCollection = mongoTemplate.collectionExists(File.class);
+        final boolean exitsCollection = mongoTemplate.collectionExists(File.class).block();
 
         if (!exitsCollection) {
             mongoTemplate.createCollection(File.class);

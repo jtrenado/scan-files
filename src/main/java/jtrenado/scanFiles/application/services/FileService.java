@@ -1,18 +1,19 @@
 package jtrenado.scanFiles.application.services;
 
 import jtrenado.scanFiles.infrastructure.entities.File;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
 
 public interface FileService {
 
-    List<File> getNextFiles(int n);
+    Flux<File> getProcessableFiles();
 
-    void markAsMissing(File file);
+    Mono<File> markAsMissing(File file);
 
-    void markAsExisting(File file);
+    Mono<File> markAsExisting(File file);
 
     boolean exists(File file);
 

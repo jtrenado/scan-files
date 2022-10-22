@@ -1,6 +1,7 @@
-package jtrenado.scanFiles.infrastructure.repositories;
+package jtrenado.newScanFiles.adapters.mongoadapter.repository;
 
-import jtrenado.scanFiles.infrastructure.entities.File;
+
+import jtrenado.newScanFiles.adapters.mongoadapter.entities.FileEntity;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
@@ -18,15 +19,6 @@ public class CustomFileRepositoryImpl implements CustomFileRepository {
     @Autowired
     private ReactiveMongoTemplate mongoTemplate;
 
-
-    /*
-    db.files3.aggregate([
-    {"$group" : { "_id": "$hash", "count": { "$sum": 1 } } },
-    {"$match": {"_id" :{ "$ne" : null } , "count" : {"$gt": 1} } },
-    {"$project": {"hash" : "$_id", "_id" : 0} }
-])
-     */
-
     @Override
     public Flux<String> findDuplicatedHashes() {
 
@@ -36,7 +28,7 @@ public class CustomFileRepositoryImpl implements CustomFileRepository {
         MatchOperation match2 = match(Criteria.where("count").gt(1).and("_id").ne(null));
         ProjectionOperation project = project().andExclude("_id").andExpression("_id").as("hash");
         Aggregation aggregation = newAggregation(match1, group, match2, project);
-        return mongoTemplate.aggregate(aggregation, mongoTemplate.getCollectionName(File.class), OutType.class).map(OutType::getHash);
+        return mongoTemplate.aggregate(aggregation, mongoTemplate.getCollectionName(FileEntity.class), OutType.class).map(CustomFileRepositoryImpl.OutType::getHash);
 
     }
 
@@ -45,9 +37,3 @@ public class CustomFileRepositoryImpl implements CustomFileRepository {
         String hash;
     }
 }
-
-/**
- * db.files_dev.aggregate(
- * { "aggregate" : "__collection__", "pipeline" : [{ "$group" : { "_id" : "$hash", "count" : { "$sum" : 1}}}, { "$match" : { "count" : { "$gt" : 1}, "_id" : { "$ne" : null}}}, { "$project" : { "_id" : 0, "hash" : "$_id"}}]}
- * )
- */

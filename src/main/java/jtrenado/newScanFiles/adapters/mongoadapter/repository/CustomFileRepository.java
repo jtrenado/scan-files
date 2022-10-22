@@ -1,4 +1,5 @@
-package jtrenado.scanFiles.infrastructure.repositories;
+package jtrenado.newScanFiles.adapters.mongoadapter.repository;
+
 
 import reactor.core.publisher.Flux;
 

@@ -21,8 +21,7 @@ app:
   file-remover:
     fixed-delay: 1000000000
     initial-delay: 1000000000
-  paths: /home/juan/devel/d1,/home/juan/devel/d2
-  #,/home/juan/devel/image_fingerprint
+  paths: /home/juan/devel/d1,/home/juan/devel/d2,/home/juan/devel/image_fingerprint
   mongodb:
     collection:
       file: files_react
@@ -46,7 +45,7 @@ app:
 logging:
   level:
     root: ERROR
-    jtrenado.newScanFiles: INFO
+    jtrenado.newScanFiles: DEBUG
     jtrenado.scanFiles: INFO
     jtrenado.scanFiles.application: INFO
     jtrenado.scanFiles.application.consumers: INFO

@@ -6,8 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
-import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 @Slf4j
@@ -16,28 +18,36 @@ public class DupeCleaner {
     @Autowired
     private FileRepository fileRepository;
 
+    private AtomicBoolean isExecuting = new AtomicBoolean(false);
+
     @Scheduled(fixedDelayString = "${app.dupe-cleaner.fixed-delay}", initialDelayString = "${app.dupe-cleaner.initial-delay}")
     public void cleanDuped() {
-        List<String> hashes = fileRepository.findDuplicatedHashes();
-        log.info(hashes.toString());
+        if (isExecuting.compareAndSet(false, true)) {
 
-        hashes.stream().forEach(this::cleanDuped);
+            log.info("Starting DupeCleaner");
+            fileRepository.findDuplicatedHashes().parallel(Runtime.getRuntime().availableProcessors()).runOn(Schedulers.boundedElastic()).doOnNext(this::cleanDuped).doOnComplete(() -> log.info("DupeCleaner completed")).doAfterTerminate(() -> isExecuting.set(false)).subscribe();
+            log.info("Ending DupeCleaner");
+
+        } else {
+            log.info("Skipping DupeCleaner");
+        }
     }
 
     private void cleanDuped(String hash) {
-        List<File> files = fileRepository.findByHash(hash);
+        log.debug("Hash {} will be processed", hash);
 
-        files.sort((f1, f2) -> f1.getPath().compareTo(f2.getPath()));
+        final Flux<File> files = fileRepository.findByHash(hash).filter(f -> !f.isMissing() && !f.isDelete()).sort((f1, f2) -> f1.getPath().compareTo(f2.getPath()));
+        files.subscribe();
+        final File original = files.next().block();
+        files.skip(1).doOnNext(c -> markToDelete(c, original.getPath())).subscribe();
 
-        File original = files.get(0);
-        List<File> copies = files.subList(1, files.size());
-        copies.stream().forEach(c -> markToDelete(c, original.getPath()));
     }
 
     private void markToDelete(File file, String path) {
+        log.debug("File with hash {} will be marked for deletion with reference {}: {} ", file.getHash(), path, file.getPath());
         file.setDelete(true);
         file.setPathToOriginal(path);
-        fileRepository.save(file);
+        fileRepository.save(file).subscribe(result -> log.debug("File marked to deletion: {}", result.getId()));
     }
 
 }

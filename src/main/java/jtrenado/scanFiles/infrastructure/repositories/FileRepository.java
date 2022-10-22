@@ -1,20 +1,20 @@
 package jtrenado.scanFiles.infrastructure.repositories;
 
 import jtrenado.scanFiles.infrastructure.entities.File;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import java.util.List;
-import java.util.Optional;
+public interface FileRepository extends ReactiveMongoRepository<File, String>, CustomFileRepository {
 
-public interface FileRepository extends MongoRepository<File, String>, CustomFileRepository {
+    Mono<File> findByPath(String path);
 
-    Optional<File> findByPath(String path);
+    Mono<Boolean> existsByPath(String path);
 
-    List<File> findByHash(String hash);
+    Flux<File> findByHash(String hash);
 
-    List<File> findAllByHashIsNullOrFootprintIsNullOrSizeIsNull();
+    Flux<File> findAllByHashIsNullOrFootprintIsNullOrSizeIsNull();
 
-    List<File> findAllByHashIsNullOrSizeIsNull(Pageable pageable);
+    Flux<File> findAllByHashIsNullOrSizeIsNull();
 
 }

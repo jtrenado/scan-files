@@ -4,16 +4,15 @@ import jtrenado.scanFiles.infrastructure.entities.File;
 import jtrenado.scanFiles.infrastructure.repositories.FileRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -22,73 +21,30 @@ public class FileServiceImpl implements FileService {
     @Autowired
     private FileRepository fileRepository;
 
-    @Autowired
-    private FileFinder fileFinder;
-
-    Map<String, File> loadedFiles = new ConcurrentHashMap<>();
-    Map<String, File> loadedAndDisposedFiles = new ConcurrentHashMap<>();
-
-    private long secondsToWait = 1800L;
-
-    private int numRecoveredDocsFromMong = 500;
-
-    @Override
-    public synchronized List<File> getNextFiles(int n) {
-
-        if (loadedFiles.isEmpty()) {
-            loadedAndDisposedFiles.clear();
-            loadFiles();
-        }
-
-        List<File> nextFiles = new ArrayList<>();
-
-        Iterator<String> itr = loadedFiles.keySet().iterator();
-        for (int i = 0; i < n; i++) {
-            if (itr.hasNext()) {
-                File f = loadedFiles.get(itr.next());
-                loadedAndDisposedFiles.put(f.getId(), f);
-                nextFiles.add(f);
-            } else {
-                break;
-            }
-        }
-
-        nextFiles.stream().map(File::getId).forEach(loadedFiles::remove);
-
-        if (nextFiles.isEmpty()) {
-            log.warn("No more files to process");
-        }
-
-        return nextFiles;
+    public Flux<File> getProcessableFiles() {
+        return fileRepository.findAllByHashIsNullOrSizeIsNull().flatMap(this::load).filter(f -> !f.isMissing());
     }
 
-    private void load(File file) {
+    private Mono<File> load(File file) {
         if (!exists(file)) {
-            markAsMissing(file);
+            return markAsMissing(file);
         } else {
-            markAsExisting(file);
+            return markAsExisting(file);
         }
-        loadedFiles.put(file.getId(), file);
-
     }
 
     @Override
-    public void markAsMissing(File file) {
-        markAsExisting(file, true);
+    public Mono<File> markAsMissing(File file) {
+        return markAsMissing(file, true);
     }
 
     @Override
-    public void markAsExisting(File file) {
-        markAsExisting(file, false);
+    public Mono<File> markAsExisting(File file) {
+        return markAsMissing(file, false);
     }
 
-    private void markAsExisting(File file, boolean existing) {
-
-        Optional<File> f = fileRepository.findById(file.getId());
-        if (f.isPresent()) {
-            f.get().setMissing(existing);
-            fileRepository.save(f.get());
-        }
+    private Mono<File> markAsMissing(File file, boolean missing) {
+        return fileRepository.findById(file.getId()).doOnNext(f -> f.setMissing(missing)).flatMap(f -> fileRepository.save(f));
     }
 
     @Override
@@ -105,37 +61,17 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public void save(Path path, String hash, String footprint, int size) {
-        Optional<File> file = fileRepository.findByPath(path.toString());
+        Optional<File> file = fileRepository.findByPath(path.toString()).blockOptional();
         if (file.isPresent()) {
             File f = file.get();
             f.setHash(hash);
             f.setFootprint(footprint);
             f.setSize(size);
-            fileRepository.save(f);
+            fileRepository.save(f).block();
         } else {
             log.error("File not found in mongo {}", path.toString());
         }
 
     }
 
-    private void loadFiles() {
-        Pageable pageableRequest = PageRequest.of(0, numRecoveredDocsFromMong);
-        List<File> allIncompleteFiles = fileRepository.findAllByHashIsNullOrSizeIsNull(pageableRequest);
-        if (allIncompleteFiles.isEmpty()) {
-            fileFinder.reloadFiles();
-            allIncompleteFiles = fileRepository.findAllByHashIsNullOrSizeIsNull(pageableRequest);
-        }
-
-        if (allIncompleteFiles.isEmpty()) {
-            log.info("No new files recovered, sleeping {} seconds", secondsToWait);
-            try {
-                Thread.sleep(secondsToWait * 1000L);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        } else {
-            log.info("{} documents recovered from mongo", allIncompleteFiles.size());
-            allIncompleteFiles.parallelStream().forEach(this::load);
-        }
-    }
 }
