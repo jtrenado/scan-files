@@ -5,13 +5,12 @@ spring:
   main.web-application-type: none
   data:
     mongodb:
-      uri: ${MONGO_URI}
-
+      uri: mongodb://localhost:27017/myFirstDatabase?retryWrites=true&w=majority
 
 app:
   file-finder:
     fixed-delay: 1000000000
-    initial-delay: 1000
+    initial-delay: 1000000000
   task-publisher:
     fixed-delay: 1000000000
     initial-delay: 1000000000
@@ -21,7 +20,7 @@ app:
   file-remover:
     fixed-delay: 1000000000
     initial-delay: 1000000000
-  paths: /home/juan/devel/d1,/home/juan/devel/d2,/home/juan/devel/image_fingerprint
+  #paths: /home/juan/devel/d1,/home/juan/devel/d2,/home/juan/devel/image_fingerprint
   mongodb:
     collection:
       file: files_react

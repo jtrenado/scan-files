@@ -5,7 +5,6 @@ import jtrenado.scanFiles.application.schedulers.FileFinder;
 import jtrenado.scanFiles.application.schedulers.FileRemover;
 import jtrenado.scanFiles.application.schedulers.TaskPublisher;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
@@ -13,9 +12,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class Application {
 
-    public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
-    }
+    // public static void main(String[] args) {
+    //   SpringApplication.run(Application.class, args);
+    //}
 
     @Autowired
     private FileFinder fileFinder;

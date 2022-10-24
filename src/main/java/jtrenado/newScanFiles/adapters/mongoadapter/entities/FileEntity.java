@@ -1,6 +1,6 @@
 package jtrenado.newScanFiles.adapters.mongoadapter.entities;
 
-import jtrenado.scanFiles.infrastructure.entities.FileType;
+
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
